@@ -34,6 +34,15 @@ main() {
       final actual = await repository.getTime();
       expect(actual, expected);
     });
+
+    test('Should return data in memory not from file when data already was loaded', () async {
+      final mockTime = Time(timeOfDay: TimeOfDay(hour: 16, minute: 44), dayOfWeeks: <bool>[true, false, true, false, true, false, true], repeat: true);
+      final repository = TimeRepository(fileStorage: fileStorage, time: mockTime);
+
+      final actual = await repository.getTime();
+      expect(actual, mockTime);
+      verifyNever(fileStorage.getContent(repository.filename));
+    });
   });
 
   group('updateTime', () {
@@ -52,7 +61,7 @@ main() {
       var expectedTime = Time.clone(mockTime);
       expectedTime.timeOfDay = mockTimeOfDay;
       expect(result, true);
-      expect(repository.time, expectedTime);
+      expect(await repository.getTime(), expectedTime);
     });
 
     test('Should not change original data when fail to store', () async {
@@ -68,7 +77,7 @@ main() {
 
       final result = await repository.updateTime(mockTimeOfDay);
       expect(result, false);
-      expect(repository.time, mockTime);
+      expect(await repository.getTime(), mockTime);
     });
   });
 
@@ -88,7 +97,7 @@ main() {
       var expectedTime = Time.clone(mockTime);
       expectedTime.dayOfWeeks = mockDayOfWeeks;
       expect(result, true);
-      expect(repository.time, expectedTime);
+      expect(await repository.getTime(), expectedTime);
     });
 
     test('Should not change original data when fail to store', () async {
@@ -104,7 +113,7 @@ main() {
 
       final result = await repository.updateDayOfWeeks(mockDayOfWeeks);
       expect(result, false);
-      expect(repository.time, mockTime);
+      expect(await repository.getTime(), mockTime);
     });
   });
 
@@ -124,7 +133,7 @@ main() {
       var expectedTime = Time.clone(mockTime);
       expectedTime.repeat = mockRepeat;
       expect(result, true);
-      expect(repository.time, expectedTime);
+      expect(await repository.getTime(), expectedTime);
     });
 
     test('Should not change original data when fail to store', () async {
@@ -140,7 +149,7 @@ main() {
 
       final result = await repository.updateRepeat(mockRepeat);
       expect(result, false);
-      expect(repository.time, mockTime);
+      expect(await repository.getTime(), mockTime);
     });
   });
 }

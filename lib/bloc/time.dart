@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:sleep_destroyer/model/home.dart';
 import 'package:sleep_destroyer/model/time.dart';
 import 'package:sleep_destroyer/bloc/base.dart';
 import 'package:sleep_destroyer/repository/home.dart';
@@ -18,8 +17,6 @@ class TimeBloc extends BlocBase {
     final HomeRepository _homeRepository;
     final TimeRepository _timeRepository;
 
-    Time get currentTime => _timeRepository.time;
-
     final _dataLoadSubject = new PublishSubject<TimeState>();
     Stream<TimeState> get dataLoadStream => _dataLoadSubject.stream;
 
@@ -32,7 +29,6 @@ class TimeBloc extends BlocBase {
         final timeData = await _timeRepository.getTime();
         _dataLoadSubject.add(TimeState._dataLoadedState(timeData));
       } catch (e) {
-        debugPrint(e);
         _dataLoadSubject.add(TimeState._failToLoadDataState());
       }
     }
@@ -43,7 +39,8 @@ class TimeBloc extends BlocBase {
         _dataMutationSubject.add(TimeMutationState._timeOfDaySuccess(time));
         return;
       }
-      _dataMutationSubject.add(TimeMutationState._timeOfDayFailure(currentTime.timeOfDay));
+      final oldTime = await _timeRepository.getTime();
+      _dataMutationSubject.add(TimeMutationState._timeOfDayFailure(oldTime.timeOfDay));
     }
 
     Future updateDayOfWeeks(List<bool> dayOfWeeks) async {
@@ -52,7 +49,8 @@ class TimeBloc extends BlocBase {
         _dataMutationSubject.add(TimeMutationState._dayOfWeeksSuccess(dayOfWeeks));
         return;
       }
-      _dataMutationSubject.add(TimeMutationState._dayOfWeeksFailure(currentTime.dayOfWeeks));
+      final oldTime = await _timeRepository.getTime();
+      _dataMutationSubject.add(TimeMutationState._dayOfWeeksFailure(oldTime.dayOfWeeks));
     }
 
     Future updateRepeat(bool repeat) async {
@@ -61,23 +59,25 @@ class TimeBloc extends BlocBase {
         _dataMutationSubject.add(TimeMutationState._repeatSuccess(repeat));
         return;
       }
-      _dataMutationSubject.add(TimeMutationState._repeatFailure(currentTime.repeat));
+      final oldTime = await _timeRepository.getTime();
+      _dataMutationSubject.add(TimeMutationState._repeatFailure(oldTime.repeat));
     }
 
     Future updateTimeSetOfHome() async {
+      _dataMutationSubject.add(TimeMutationState._timeSetOfHomeLoading());
       var homeScreen = await _homeRepository.getHomeScreen();
       if (homeScreen.timeSet) {
-        _dataMutationSubject.add(TimeMutationState._homeTimeSetSuccess());
+        _dataMutationSubject.add(TimeMutationState._timeSetOfHomeSuccess());
         return;
       }
 
       homeScreen.timeSet = true;
       final ok = await _homeRepository.updateHomeScreen(homeScreen);
       if (ok) {
-        _dataMutationSubject.add(TimeMutationState._homeTimeSetSuccess());
+        _dataMutationSubject.add(TimeMutationState._timeSetOfHomeSuccess());
         return;
       }
-      _dataMutationSubject.add(TimeMutationState._homeTimeSetFailure());
+      _dataMutationSubject.add(TimeMutationState._timeSetOfHomeFailure());
     }
 
     @override
@@ -90,7 +90,7 @@ class TimeBloc extends BlocBase {
 class TimeState {
   TimeState();
   factory TimeState._loadingState() = TimeLoadingState;
-  factory TimeState._dataLoadedState(Time data) = TimeDataLoadedState;
+  factory TimeState._dataLoadedState(Time data) => TimeDataLoadedState(data);
   factory TimeState._failToLoadDataState() = TimeDataLoadFailureState;
 }
 
@@ -123,18 +123,19 @@ class TimeDataLoadFailureState extends TimeState {
 
 class TimeMutationState {
   TimeMutationState();
-  factory TimeMutationState._timeOfDaySuccess(TimeOfDay updated) => UpdateTimeOfDaySuccess(updated);
-  factory TimeMutationState._timeOfDayFailure(TimeOfDay updated) => UpdateTimeOfDayFailure(updated);
-  factory TimeMutationState._dayOfWeeksSuccess(List<bool> updated) => UpdateDayOfWeeksSuccess(updated);
-  factory TimeMutationState._dayOfWeeksFailure(List<bool> updated) => UpdateDayOfWeeksFailure(updated);
-  factory TimeMutationState._repeatSuccess(bool updated) => UpdateRepeatSuccess(updated);
-  factory TimeMutationState._repeatFailure(bool updated) => UpdateRepeatFailure(updated);
-  factory TimeMutationState._homeTimeSetSuccess() = UpdateHomeTimeSetSuccess;
-  factory TimeMutationState._homeTimeSetFailure() = UpdateHomeTimeSetFailure;
+  factory TimeMutationState._timeOfDaySuccess(TimeOfDay updated) => UpdateTimeOfDaySuccessState(updated);
+  factory TimeMutationState._timeOfDayFailure(TimeOfDay updated) => UpdateTimeOfDayFailureState(updated);
+  factory TimeMutationState._dayOfWeeksSuccess(List<bool> updated) => UpdateDayOfWeeksSuccessState(updated);
+  factory TimeMutationState._dayOfWeeksFailure(List<bool> updated) => UpdateDayOfWeeksFailureState(updated);
+  factory TimeMutationState._repeatSuccess(bool updated) => UpdateRepeatSuccessState(updated);
+  factory TimeMutationState._repeatFailure(bool updated) => UpdateRepeatFailureState(updated);
+  factory TimeMutationState._timeSetOfHomeLoading() = UpdateTimeSetOfHomeLoadingState;
+  factory TimeMutationState._timeSetOfHomeSuccess() = UpdateTimeSetOfHomeSuccessState;
+  factory TimeMutationState._timeSetOfHomeFailure() = UpdateTimeSetOfHomeFailureState;
 }
 
-class UpdateTimeOfDaySuccess extends TimeMutationState {
-  UpdateTimeOfDaySuccess(TimeOfDay updated)
+class UpdateTimeOfDaySuccessState extends TimeMutationState {
+  UpdateTimeOfDaySuccessState(TimeOfDay updated)
     : assert(updated != null),
       this.updated = updated;
 
@@ -142,15 +143,15 @@ class UpdateTimeOfDaySuccess extends TimeMutationState {
 
     @override
     bool operator==(Object other) =>
-      other is UpdateTimeOfDaySuccess &&
+      other is UpdateTimeOfDaySuccessState &&
       this.updated == other.updated;
 
     @override
     int get hashCode => hashValues(super.hashCode, updated);
 }
 
-class UpdateTimeOfDayFailure extends TimeMutationState {
-  UpdateTimeOfDayFailure(TimeOfDay updated)
+class UpdateTimeOfDayFailureState extends TimeMutationState {
+  UpdateTimeOfDayFailureState(TimeOfDay updated)
     : assert(updated != null),
       this.updated = updated;
 
@@ -158,15 +159,15 @@ class UpdateTimeOfDayFailure extends TimeMutationState {
 
   @override
   bool operator==(Object other) =>
-    other is UpdateTimeOfDayFailure &&
+    other is UpdateTimeOfDayFailureState &&
     this.updated == other.updated;
 
   @override
   int get hashCode => hashValues(super.hashCode, updated);
 }
 
-class UpdateDayOfWeeksSuccess extends TimeMutationState {
-  UpdateDayOfWeeksSuccess(List<bool> updated)
+class UpdateDayOfWeeksSuccessState extends TimeMutationState {
+  UpdateDayOfWeeksSuccessState(List<bool> updated)
     : assert(updated != null),
       this.updated = updated;
   
@@ -174,15 +175,15 @@ class UpdateDayOfWeeksSuccess extends TimeMutationState {
 
   @override
   bool operator==(Object other) =>
-    other is UpdateDayOfWeeksSuccess &&
+    other is UpdateDayOfWeeksSuccessState &&
     DeepCollectionEquality().equals(updated, other.updated);
 
   @override
-  int get hashCode => hashValues(super.hashCode, updated);
+  int get hashCode => hashValues(super.hashCode, DeepCollectionEquality().hash(updated));
 }
 
- class UpdateDayOfWeeksFailure extends TimeMutationState {
-   UpdateDayOfWeeksFailure(List<bool> updated)
+ class UpdateDayOfWeeksFailureState extends TimeMutationState {
+   UpdateDayOfWeeksFailureState(List<bool> updated)
     : assert(updated != null),
       this.updated = updated;
   
@@ -190,15 +191,15 @@ class UpdateDayOfWeeksSuccess extends TimeMutationState {
 
   @override
   bool operator==(Object other) =>
-    other is UpdateDayOfWeeksFailure &&
+    other is UpdateDayOfWeeksFailureState &&
     DeepCollectionEquality().equals(updated, other.updated);
 
   @override
-  int get hashCode => hashValues(super.hashCode, updated);
+  int get hashCode => hashValues(super.hashCode, DeepCollectionEquality().hash(updated));
  }
 
-class UpdateRepeatSuccess extends TimeMutationState {
-  UpdateRepeatSuccess(bool updated)
+class UpdateRepeatSuccessState extends TimeMutationState {
+  UpdateRepeatSuccessState(bool updated)
     : assert(updated != null),
       this.updated = updated;
     
@@ -206,15 +207,15 @@ class UpdateRepeatSuccess extends TimeMutationState {
 
   @override
   bool operator==(Object other) =>
-    other is UpdateRepeatSuccess &&
+    other is UpdateRepeatSuccessState &&
     updated == other.updated;
 
   @override
   int get hashCode => super.hashCode;
 }
 
-class UpdateRepeatFailure extends TimeMutationState {
-  UpdateRepeatFailure(bool updated)
+class UpdateRepeatFailureState extends TimeMutationState {
+  UpdateRepeatFailureState(bool updated)
     : assert(updated != null),
       this.updated = updated;
   
@@ -222,24 +223,32 @@ class UpdateRepeatFailure extends TimeMutationState {
 
   @override
   bool operator==(Object other) =>
-    other is UpdateRepeatFailure &&
+    other is UpdateRepeatFailureState &&
     updated == other.updated;
 
   @override
   int get hashCode => super.hashCode;
 }
 
-class UpdateHomeTimeSetSuccess extends TimeMutationState {
+class UpdateTimeSetOfHomeLoadingState extends TimeMutationState {
   @override
-  bool operator==(Object other) => other is UpdateHomeTimeSetSuccess;
+  bool operator==(Object other) => other is UpdateTimeSetOfHomeLoadingState;
 
   @override
   int get hashCode => super.hashCode;
 }
 
-class UpdateHomeTimeSetFailure extends TimeMutationState {
+class UpdateTimeSetOfHomeSuccessState extends TimeMutationState {
   @override
-  bool operator==(Object other) => other is UpdateHomeTimeSetFailure;
+  bool operator==(Object other) => other is UpdateTimeSetOfHomeSuccessState;
+
+  @override
+  int get hashCode => super.hashCode;
+}
+
+class UpdateTimeSetOfHomeFailureState extends TimeMutationState {
+  @override
+  bool operator==(Object other) => other is UpdateTimeSetOfHomeFailureState;
 
   @override
   int get hashCode => super.hashCode;

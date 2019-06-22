@@ -7,51 +7,54 @@ class TimeRepository {
   TimeRepository({FileStorage fileStorage, Time time}) 
     : assert(fileStorage != null), 
       _fileStorage = fileStorage,
-      _time = time ?? Time.withDefault();
+      _data = time;
 
   final String filename = "time.json";
-  Time _time;
-  Time get time => _time;
+  Time _data;
 
   final FileStorage _fileStorage;
 
   Future<Time> getTime() async {
+    if (_data != null) {
+      return _data;
+    }
+
     final stringContent = await _fileStorage.getContent(filename);
     if (stringContent.isEmpty) {
       return Time.withDefault();
     }
     final jsonMap = json.decode(stringContent);
     final time = Time.fromJson(jsonMap);
-    _time = time;
+    _data = time;
     return time;
   }
 
   Future<bool> updateTime(TimeOfDay time) async {
-    var futureData = Time.clone(_time);
+    var futureData = Time.clone(_data);
     futureData.timeOfDay = time;
     final ok = await _updateTemplate(futureData);
     if (ok) {
-      _time.timeOfDay = time;
+      _data.timeOfDay = time;
     }
     return ok;
   }
 
   Future<bool> updateDayOfWeeks(List<bool> dayOfWeeks) async {
-    var futureData = Time.clone(_time);
+    var futureData = Time.clone(_data);
     futureData.dayOfWeeks = dayOfWeeks;
     final ok = await _updateTemplate(futureData);
     if (ok) {
-      _time.dayOfWeeks = dayOfWeeks;
+      _data.dayOfWeeks = dayOfWeeks;
     }
     return ok;
   }
 
   Future<bool> updateRepeat(bool repeat) async {
-    var futureData = Time.clone(_time);
+    var futureData = Time.clone(_data);
     futureData.repeat = repeat;
     final ok = await _updateTemplate(futureData);
     if (ok) {
-      _time.repeat = repeat;
+      _data.repeat = repeat;
     }
     return ok;
   }

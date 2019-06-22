@@ -21,6 +21,12 @@ class HomeScreen {
       locationSet = jsonMap['locationSet'],
       ringtoneSet = jsonMap['ringtoneSet'];
 
+  HomeScreen.clone(HomeScreen other) :
+    this.turnedOn = other.turnedOn,
+    this.timeSet = other.timeSet,
+    this.locationSet = other.locationSet,
+    this.ringtoneSet = other.ringtoneSet;
+
   bool turnedOn;
   bool timeSet;
   bool locationSet;

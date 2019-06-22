@@ -52,5 +52,5 @@ class Time {
     repeat == other.repeat;
   
   @override
-  int get hashCode => hashValues(timeOfDay, dayOfWeeks, repeat);
+  int get hashCode => hashValues(timeOfDay, DeepCollectionEquality().hash(dayOfWeeks), repeat);
 }
