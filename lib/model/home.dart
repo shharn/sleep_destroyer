@@ -48,4 +48,9 @@ class HomeScreen {
     ringtoneSet == other.ringtoneSet;
 
   int get hashCode => hashValues(turnedOn, timeSet, locationSet, ringtoneSet);
+
+  @override
+  String toString() {
+    return 'turnedOn - $turnedOn, timeSet - $timeSet, locationSet - $locationSet, ringtoneSet - $ringtoneSet';
+  }
 }

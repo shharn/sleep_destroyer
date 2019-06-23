@@ -12,16 +12,17 @@ import 'package:sleep_destroyer/presentation/ringtone.dart';
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final bloc = HomeBloc(HomeRepository(fileStorage));
+    final bloc = HomeBloc(HomeRepository(fileStorage: fileStorage));
     bloc.loadData();
+    debugPrint('[Homepage] build');
     return BlocProvider(
       bloc: bloc,
-      child: HomePageContainer(),
+      child: HomePageBlocContainer(),
     );
   }
 }
 
-class HomePageContainer extends StatelessWidget {
+class HomePageBlocContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
@@ -29,53 +30,76 @@ class HomePageContainer extends StatelessWidget {
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (snapshot.hasData) {
           final state = snapshot.data as HomeState;
-          var homeScreen = HomeScreen.withDefault();
           switch (state.runtimeType) {
             case HomeLoadingState:
               return LoadingIndicator();
             case HomeDataLoadedState:
-              homeScreen = (state as HomeDataLoadedState).data;
-              break;
+              final homeScreen = (state as HomeDataLoadedState).data;
+              debugPrint('[HomeDataLoadedState] ${homeScreen.toString()}');
+              return HomePageContainer(homeScreen: homeScreen);
             default:
-              break;
+              final fallbackData = HomeScreen.withDefault();
+              debugPrint('${state.runtimeType.toString()}');
+              return HomePageContainer(homeScreen: fallbackData);
           }
-          return Scaffold(
-            appBar: AppBar(
-              actions: <Widget>[
-                  StreamBuilder(
-                    stream: BlocProvider.of<HomeBloc>(context).dataMutationStream,
-                    builder: (BuildContext context, AsyncSnapshot mutationSnapshot) {
-                      var turnedOn = homeScreen.turnedOn;
-                      if (mutationSnapshot.hasData) {
-                        final state = mutationSnapshot.data as HomeMutationState;
-                        switch (state.runtimeType) {
-                          case UpdateAlarmSwitchSuccess:
-                            turnedOn = (state as UpdateAlarmSwitchSuccess).updatedValue;
-                            break;
-                          case UpdateAlarmSwitchFailure:
-                            turnedOn = (state as UpdateAlarmSwitchFailure).updatedValue;
-                            break;
-                          default:
-                            break;
-                        }
-                      }
-                      return AlarmSwitch(
-                        turnedOn: turnedOn,
-                      );
-                    }
-                  )
-              ]
-            ),
-            body: MenuContainer(
-                timeSet: homeScreen.timeSet,
-                locationSet: homeScreen.locationSet,
-                ringtoneSet: homeScreen.ringtoneSet,
-              ),
-            );
         } else {
           return LoadingIndicator();
         }
      }
+    );
+  }
+}
+
+class HomePageContainer extends StatelessWidget {
+  HomePageContainer({@required HomeScreen homeScreen}) : _homeScreen = homeScreen;
+
+  final HomeScreen _homeScreen;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+    appBar: AppBar(
+      actions: <Widget>[
+          StreamBuilder(
+            stream: BlocProvider.of<HomeBloc>(context).dataMutationStream,
+            builder: (BuildContext context, AsyncSnapshot mutationSnapshot) {
+              if (mutationSnapshot.hasData) {
+                final state = mutationSnapshot.data as HomeMutationState;
+                switch (state.runtimeType) {
+                  case UpdateAlarmSwitchSuccess:
+                    debugPrint('[UpdateAlarmSwitchSuccess]');
+                    final turnedOn = (state as UpdateAlarmSwitchSuccess).updatedValue;
+                    return AlarmSwitch(turnedOn: turnedOn);
+                  case UpdateAlarmSwitchFailure:
+                    debugPrint('[UpdateAlarmSwitchFailure]');
+                    final turnedOn = (state as UpdateAlarmSwitchFailure).updatedValue;
+                    return AlarmSwitch(turnedOn: turnedOn);
+                  case UpdateAlarmSwitchBadPrerequisite:
+                    debugPrint('[UpdateAlarmSwitchBadPrerequisite]');
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      final snackBar = SnackBar(
+                        content: Text('모든 설정값을 등록해주세요.'),
+                        duration: Duration(seconds: 2)
+                      );
+                      Scaffold.of(context).showSnackBar(snackBar);
+                    });
+                    final turnedOn = BlocProvider.of<HomeBloc>(context).data?.turnedOn ?? false;
+                    return AlarmSwitch(turnedOn: turnedOn);
+                  default:
+                    return AlarmSwitch(turnedOn: false);
+                }
+              }
+              return AlarmSwitch(
+                turnedOn: _homeScreen.turnedOn,
+              );
+            }
+          )
+      ]
+    ),
+    body: MenuContainer(
+        timeSet: _homeScreen.timeSet,
+        locationSet: _homeScreen.locationSet,
+        ringtoneSet: _homeScreen.ringtoneSet,
+      ),
     );
   }
 }
@@ -90,14 +114,11 @@ class AlarmSwitch extends StatelessWidget {
     return Switch(
       activeColor: Colors.blue[600],
       value: turnedOn,
-      onChanged:_updateSwitch(context),
+      onChanged:(bool turnedOn) {
+        debugPrint('[AlarmSwitch] onChanged with $turnedOn');
+        BlocProvider.of<HomeBloc>(context).updateAlarmSwitch(turnedOn);
+      }
     );
-  }
-
-  ValueChanged<bool> _updateSwitch(BuildContext context) {
-    return (bool turnedOn) {
-      BlocProvider.of<HomeBloc>(context).updateAlarmSwitch(turnedOn);
-    };
   }
 }
 

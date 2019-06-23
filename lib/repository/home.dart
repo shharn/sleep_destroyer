@@ -4,7 +4,7 @@ import 'package:sleep_destroyer/repository/file.dart';
 import 'package:sleep_destroyer/model/home.dart';
 
 class HomeRepository {
-  HomeRepository(FileStorage fileStorage) :
+  HomeRepository({FileStorage fileStorage}) :
     assert(fileStorage != null),
     _fileStorage = fileStorage;
   

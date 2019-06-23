@@ -20,15 +20,26 @@ class TimeBloc extends BlocBase {
     final _dataLoadSubject = new PublishSubject<TimeState>();
     Stream<TimeState> get dataLoadStream => _dataLoadSubject.stream;
 
-    final _dataMutationSubject = new PublishSubject<TimeMutationState>();
-    Stream<TimeMutationState> get dataMutationStream => _dataMutationSubject.stream;
+    final _timeOfDayMutationSubject = new PublishSubject<TimeMutationState>();
+    Stream<TimeMutationState> get timeOfDayMutationStream => _timeOfDayMutationSubject.stream;
+
+    final _dayOfWeeksMutationSubject = new PublishSubject<TimeMutationState>();
+    Stream<TimeMutationState> get dayOfWeeksMutationStream => _dayOfWeeksMutationSubject;
+
+    final _repeatMutationSubject = new PublishSubject<TimeMutationState>();
+    Stream<TimeMutationState> get repeatMutationStream => _repeatMutationSubject.stream;
+
+    final _timeSetOfHomeMutationSubject = new PublishSubject<TimeMutationState>();
+    Stream<TimeMutationState> get timeSetOfHomeMutationSubject => _timeSetOfHomeMutationSubject.stream;
 
     Future loadData() async {
       _dataLoadSubject.add(TimeState._loadingState());
       try {
         final timeData = await _timeRepository.getTime();
+        debugPrint('[TimeBloc] loadData - timeData - $timeData');
         _dataLoadSubject.add(TimeState._dataLoadedState(timeData));
       } catch (e) {
+        debugPrint(e);
         _dataLoadSubject.add(TimeState._failToLoadDataState());
       }
     }
@@ -36,54 +47,57 @@ class TimeBloc extends BlocBase {
     Future updateTimeOfDay(TimeOfDay time) async {
       final ok = await _timeRepository.updateTime(time);
       if (ok) {
-        _dataMutationSubject.add(TimeMutationState._timeOfDaySuccess(time));
+        _timeOfDayMutationSubject.add(TimeMutationState._timeOfDaySuccess(time));
         return;
       }
       final oldTime = await _timeRepository.getTime();
-      _dataMutationSubject.add(TimeMutationState._timeOfDayFailure(oldTime.timeOfDay));
+      _timeOfDayMutationSubject.add(TimeMutationState._timeOfDayFailure(oldTime.timeOfDay));
     }
 
     Future updateDayOfWeeks(List<bool> dayOfWeeks) async {
       final ok = await _timeRepository.updateDayOfWeeks(dayOfWeeks);
       if (ok) {
-        _dataMutationSubject.add(TimeMutationState._dayOfWeeksSuccess(dayOfWeeks));
+        _dayOfWeeksMutationSubject.add(TimeMutationState._dayOfWeeksSuccess(dayOfWeeks));
         return;
       }
       final oldTime = await _timeRepository.getTime();
-      _dataMutationSubject.add(TimeMutationState._dayOfWeeksFailure(oldTime.dayOfWeeks));
+      _dayOfWeeksMutationSubject.add(TimeMutationState._dayOfWeeksFailure(oldTime.dayOfWeeks));
     }
 
     Future updateRepeat(bool repeat) async {
       final ok = await _timeRepository.updateRepeat(repeat);
       if (ok) {
-        _dataMutationSubject.add(TimeMutationState._repeatSuccess(repeat));
+        _repeatMutationSubject.add(TimeMutationState._repeatSuccess(repeat));
         return;
       }
       final oldTime = await _timeRepository.getTime();
-      _dataMutationSubject.add(TimeMutationState._repeatFailure(oldTime.repeat));
+      _repeatMutationSubject.add(TimeMutationState._repeatFailure(oldTime.repeat));
     }
 
     Future updateTimeSetOfHome() async {
-      _dataMutationSubject.add(TimeMutationState._timeSetOfHomeLoading());
+      _timeSetOfHomeMutationSubject.add(TimeMutationState._timeSetOfHomeLoading());
       var homeScreen = await _homeRepository.getHomeScreen();
       if (homeScreen.timeSet) {
-        _dataMutationSubject.add(TimeMutationState._timeSetOfHomeSuccess());
+        _timeSetOfHomeMutationSubject.add(TimeMutationState._timeSetOfHomeSuccess());
         return;
       }
 
       homeScreen.timeSet = true;
       final ok = await _homeRepository.updateHomeScreen(homeScreen);
       if (ok) {
-        _dataMutationSubject.add(TimeMutationState._timeSetOfHomeSuccess());
+        _timeSetOfHomeMutationSubject.add(TimeMutationState._timeSetOfHomeSuccess());
         return;
       }
-      _dataMutationSubject.add(TimeMutationState._timeSetOfHomeFailure());
+      _timeSetOfHomeMutationSubject.add(TimeMutationState._timeSetOfHomeFailure());
     }
 
     @override
     void dispose() {
       _dataLoadSubject.close();
-      _dataMutationSubject.close();
+      _timeOfDayMutationSubject.close();
+      _dayOfWeeksMutationSubject.close();
+      _repeatMutationSubject.close();
+      _timeSetOfHomeMutationSubject.close();
     }
 }
 

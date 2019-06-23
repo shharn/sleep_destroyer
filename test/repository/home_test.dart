@@ -12,7 +12,7 @@ main() {
   group('getHomeScreen', () {
     test('should return HomeScreen object with default properties when no configuration', () async {
       final fileStorage = MockFileStorage();
-      final repository = HomeRepository(fileStorage);
+      final repository = HomeRepository(fileStorage: fileStorage);
 
       when(fileStorage.getContent(repository.filename)).thenAnswer((_) => Future.value(''));
 
@@ -23,7 +23,7 @@ main() {
 
     test('Should return HomeScreen object with properties mapped to string content', () async {
       final fileStorage = MockFileStorage();
-      final repository = HomeRepository(fileStorage);
+      final repository = HomeRepository(fileStorage: fileStorage);
 
       when(fileStorage.getContent(repository.filename))
         .thenAnswer((_) => Future.value('{"turnedOn":true,"timeSet":false,"locationSet":true,"ringtoneSet":false}'));
@@ -37,7 +37,7 @@ main() {
   group('updateHomeScreen', () {
     test('Should call FileStorage.writeContent', () async {
       final fileStorage = MockFileStorage();
-      final repository = HomeRepository(fileStorage);
+      final repository = HomeRepository(fileStorage: fileStorage);
 
       final homeScreen = HomeScreen(turnedOn: true, timeSet: false, locationSet: true, ringtoneSet: true);
       final expectedArg = '{"turnedOn":true,"timeSet":false,"locationSet":true,"ringtoneSet":true}';

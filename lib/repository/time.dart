@@ -4,10 +4,11 @@ import 'package:sleep_destroyer/repository/file.dart';
 import 'package:sleep_destroyer/model/time.dart';
 
 class TimeRepository {
-  TimeRepository({FileStorage fileStorage, Time time}) 
-    : assert(fileStorage != null), 
-      _fileStorage = fileStorage,
-      _data = time;
+  TimeRepository({
+    @required FileStorage fileStorage, 
+    Time time
+  }) : _fileStorage = fileStorage,
+    _data = time;
 
   final String filename = "time.json";
   Time _data;
@@ -21,7 +22,8 @@ class TimeRepository {
 
     final stringContent = await _fileStorage.getContent(filename);
     if (stringContent.isEmpty) {
-      return Time.withDefault();
+      _data = Time.withDefault();
+      return _data;
     }
     final jsonMap = json.decode(stringContent);
     final time = Time.fromJson(jsonMap);

@@ -53,10 +53,10 @@ main() {
   group('updateAlarmSwitch', () {
     test('Happy path', () async {
       final homeBloc = HomeBloc(repository);
-      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: true, locationSet: true, ringtoneSet: false);
+      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: true, locationSet: true, ringtoneSet: true);
       homeBloc.data = mockHomeScreen;
       final mockValue = true;
-      final updatedHomeScreen = HomeScreen(turnedOn: mockValue, timeSet: true, locationSet: true, ringtoneSet: false);
+      final updatedHomeScreen = HomeScreen(turnedOn: mockValue, timeSet: true, locationSet: true, ringtoneSet: true);
       when(repository.updateHomeScreen(updatedHomeScreen)).thenAnswer((_) => Future.value(true));
       
       expectLater(
@@ -71,12 +71,30 @@ main() {
       homeBloc.updateAlarmSwitch(mockValue);
     });
 
-    test('Exception from repository', () async {
+    test('Should not update \'turnedOn\' to on when all of the required configuration aren\'t on', () async {
       final homeBloc = HomeBloc(repository);
-      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: true, locationSet: true, ringtoneSet: false);
+      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: false, locationSet: true, ringtoneSet: true);
       homeBloc.data = mockHomeScreen;
       final mockValue = true;
-      final updatedHomeScreen = HomeScreen(turnedOn: mockValue, timeSet: true, locationSet: true, ringtoneSet: false);
+
+      expectLater(
+        homeBloc.dataMutationStream,
+        emitsInOrder(
+          <dynamic>[
+            UpdateAlarmSwitchBadPrerequisite(),
+          ]
+        )
+      );
+
+      homeBloc.updateAlarmSwitch(mockValue);
+    });
+
+    test('Exception from repository', () async {
+      final homeBloc = HomeBloc(repository);
+      final mockHomeScreen = HomeScreen(turnedOn: true, timeSet: true, locationSet: true, ringtoneSet: true);
+      homeBloc.data = mockHomeScreen;
+      final mockValue = true;
+      final updatedHomeScreen = HomeScreen(turnedOn: mockValue, timeSet: true, locationSet: true, ringtoneSet: true);
       when(repository.updateHomeScreen(updatedHomeScreen)).thenAnswer((_) => Future.value(false));
 
       expectLater(

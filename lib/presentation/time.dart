@@ -1,25 +1,92 @@
 import 'package:flutter/material.dart';
-import '../model/time.dart';
-import './common.dart';
+
+import 'package:sleep_destroyer/model/time.dart';
+import 'package:sleep_destroyer/bloc/base.dart';
+import 'package:sleep_destroyer/bloc/time.dart';
+import 'package:sleep_destroyer/repository/home.dart';
+import 'package:sleep_destroyer/repository/time.dart';
+import 'package:sleep_destroyer/repository/file.dart';
+import 'package:sleep_destroyer/presentation/common.dart';
 
 class TimeSettingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final bool loaded = true;
-    final time = Time.withDefault();
+    final bloc = TimeBloc(HomeRepository(fileStorage: fileStorage), TimeRepository(fileStorage: fileStorage));
+    bloc.loadData();
+    debugPrint('[TimePage] build');
+    return BlocProvider(
+      bloc: bloc,
+      child: TimePageBlocContainer(),
+    );
+  }
+}
+
+class TimePageBlocContainer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: BlocProvider.of<TimeBloc>(context).dataLoadStream,
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        if (snapshot.hasData) {
+          final state = snapshot.data as TimeState;
+          switch (state.runtimeType) {
+            case TimeLoadingState:
+              return LoadingIndicator();
+            case TimeDataLoadedState:
+              final time = (state as TimeDataLoadedState).data;
+              return TimePageContainer(initialTime: time); 
+            default:
+              final time = Time.withDefault();
+              return TimePageContainer(initialTime: time);
+          }
+        }
+        return LoadingIndicator();
+      }
+    );
+  }
+}
+
+class TimePageContainer extends StatelessWidget {
+  TimePageContainer({
+    @required Time initialTime
+  }) : _initialTime = initialTime;
+
+  final Time _initialTime;
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.done),
-            onPressed: () {
-              if (!loaded) return;
+          StreamBuilder(
+            stream: BlocProvider.of<TimeBloc>(context).timeSetOfHomeMutationSubject,
+            builder: (BuildContext context, AsyncSnapshot snapshot) {
+              if (snapshot.hasData) {
+                final state = snapshot.data as TimeMutationState;
+                switch (state.runtimeType) {
+                  case UpdateTimeSetOfHomeLoadingState:
+                    return LoadingIndicator();
+                  case UpdateTimeSetOfHomeSuccessState:
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      debugPrint('[UpdatetimeSetOfHomeSuccessState] pop');
+                      Navigator.pop(context);
+                    });
+                    return  LoadingIndicator();
+                  case UpdateTimeSetOfHomeFailureState:
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      debugPrint('[UpdatetimeSetOfHomeFailureState] pop');
+                      Navigator.pop(context);
+                    });
+                    return  LoadingIndicator();
+                  default:
+                    return ConfirmIconButton();
+                }
+              }
+              return ConfirmIconButton();
             }
           ),
         ],
       ),
-      body: loaded ? 
-        Padding(
+      body: Padding(
           padding: EdgeInsets.only(top: 0.0, right: 20.0, bottom: 0.0, left: 20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -31,33 +98,86 @@ class TimeSettingPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15.0),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.only(top: 25.0, bottom: 25.0),
+                  padding: EdgeInsets.only(top: 25.0, bottom: 10.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    // crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      _Time(time: time.timeOfDay),
-                      _DayOfWeeks(dayOfWeeks: time.dayOfWeeks),
-                      _Repeat(repeat: time.repeat),
+                      TimeArea(initialTimeOfDay: _initialTime.timeOfDay),
+                      DayOfWeeksArea(initialDayOfWeeks: _initialTime.dayOfWeeks),
+                      RepeatArea(initialRepeat: _initialTime.repeat),
                     ]
                   ),
                 ),
               ),
             ]
           )
-        ) :
-        LoadingIndicator()
+        )
+      );
+  }
+}
+
+class ConfirmIconButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.done),
+      onPressed: () => BlocProvider.of<TimeBloc>(context).updateTimeSetOfHome()
     );
   }
 }
 
-class _Time extends StatelessWidget {
-  _Time({
+class TimeArea extends StatelessWidget {
+  TimeArea({
+    @required TimeOfDay initialTimeOfDay
+  }) : _initialTimeOfDay = initialTimeOfDay;
+
+  final TimeOfDay _initialTimeOfDay;
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: BlocProvider.of<TimeBloc>(context).timeOfDayMutationStream,
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        if (!snapshot.hasData) {
+          return TimeDisplay(time: _initialTimeOfDay ?? TimeOfDay.now());
+        }
+        final state = snapshot.data as TimeMutationState;
+        switch (state.runtimeType) {
+          case UpdateTimeOfDaySuccessState:
+            final timeOfDay = (state as UpdateTimeOfDaySuccessState).updated;
+            return TimeDisplay(time: timeOfDay);
+          case UpdateTimeOfDayFailureState:
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final snackbar = SnackBar(
+                content: Text('저장하는 도중 오류가 발생했습니다.'),
+                duration: Duration(seconds: 2)
+              );
+              Scaffold.of(context).showSnackBar(snackbar);
+            });
+            final timeOfDay = (state as UpdateTimeOfDayFailureState).updated;
+            return TimeDisplay(time: timeOfDay);
+          default:
+            return null;
+        }
+      }
+    );
+  }
+}
+
+class TimeDisplay extends StatelessWidget {
+  TimeDisplay({
     @required TimeOfDay time
   }) : this._time = time;
 
+  final double _fontSize = 60.0;
+
   final TimeOfDay _time;
+  int get _hourOfPeriod => _time.hourOfPeriod;
+  int get _minute => _time.minute;
+
+  String get _periodString => _time.period == DayPeriod.am ? "AM" : "PM";
+  String get _formattedHour => _hourOfPeriod < 10 ? "0${_hourOfPeriod.toString()}" : _hourOfPeriod.toString();
+  String get _formattedMinute => _minute < 10 ? "0${_minute.toString()}" : _minute.toString();
 
   @override
   Widget build(BuildContext context) {
@@ -67,90 +187,61 @@ class _Time extends StatelessWidget {
           context: context,
           initialTime: _time,
         );
-        var timeString = updatedTime == null ? "Canceled" : updatedTime.toString();
-        Scaffold.of(context).showSnackBar(SnackBar(content: Text(timeString)));
         if (updatedTime != null) {
-          // update time
+          BlocProvider.of<TimeBloc>(context).updateTimeOfDay(updatedTime);
         }
       },
-      child: _TimeDisplay(timeToShow: _time),
-    );
-  }
-}
-
-class _TimeDisplay extends StatelessWidget {
-  final TimeOfDay timeToShow;
-  final double _fontSize = 60.0;
-
-  _TimeDisplay({
-      @required this.timeToShow
-    });
-
-  @override
-  Widget build(BuildContext context) {
-    final hourOfPeriod = timeToShow.hourOfPeriod;
-    final minute = timeToShow.minute;
-    final period = timeToShow.period;
-    String formattedHour = hourOfPeriod < 10 ? "0${hourOfPeriod.toString()}" : hourOfPeriod.toString();
-    String formattedMinute = minute < 10 ? "0${minute.toString()}" : minute.toString();
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        _TimeDisplayItem(
-          displayText: period == DayPeriod.am ? "AM" : "PM",
-          fontSize: _fontSize
-        ),
-        _TimeDisplayItem(
-          displayText: '$formattedHour : $formattedMinute',
-          fontSize: _fontSize,
-        ),
-      ]
-    );
-  }
-}
-
-class _TimeDisplayItem extends StatelessWidget {
-  final _displayText;
-  final _fontSize;
-  final _expanded;
-
-  _TimeDisplayItem({
-    @required String displayText,
-    @required double fontSize,
-    bool expanded = true
-  }):
-  _displayText = displayText,
-  _fontSize = fontSize,
-  _expanded = expanded;
-
-  @override
-  Widget build(BuildContext context) {
-    var column = Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Text(
-            _displayText,
-            style: TextStyle(fontSize: _fontSize)
+          Column(
+            children: <Widget>[
+              Text(
+                '$_periodString  $_formattedHour : $_formattedMinute',
+                style: TextStyle(fontSize: _fontSize)
+              ),
+            ],
           ),
-          // Center(
-          //   child: Text(
-          //     _displayText,
-          //     style: TextStyle(
-          //       fontSize: _fontSize
-          //     ),
-          //   ),
-          // ),
-        ],
-      );
-    return _expanded ? 
-      Expanded(
-        child: column
-      ) : 
-      column;
+        ]
+      )
+    );
   }
 }
 
-class _DayOfWeeks extends StatelessWidget {
-  _DayOfWeeks({
+class DayOfWeeksArea extends StatelessWidget {
+  DayOfWeeksArea({
+    @required List<bool> initialDayOfWeeks
+  }) : _inintialDayOfWeeks = initialDayOfWeeks;
+
+  final List<bool> _inintialDayOfWeeks;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: BlocProvider.of<TimeBloc>(context).dayOfWeeksMutationStream,
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        if (!snapshot.hasData) {
+          return DayOfWeeksDisplay(dayOfWeeks: _inintialDayOfWeeks ?? <bool>[false, false, false, false, false, false, false]);
+        }
+
+        final state = snapshot.data as TimeMutationState;
+        switch (state.runtimeType) {
+          case UpdateDayOfWeeksSuccessState:
+            final dayOfWeeks = (state as UpdateDayOfWeeksSuccessState).updated;
+            return DayOfWeeksDisplay(dayOfWeeks: dayOfWeeks);
+          case UpdateDayOfWeeksFailureState:
+            final dayOfWeeks = (state as UpdateDayOfWeeksFailureState).updated;
+            return DayOfWeeksDisplay(dayOfWeeks: dayOfWeeks);
+          default:
+            return null;
+        }
+      }
+    );
+  }
+}
+
+class DayOfWeeksDisplay extends StatelessWidget {
+  DayOfWeeksDisplay({
     @required List<bool> dayOfWeeks
   }) : this._dayOfWeeks = dayOfWeeks;
 
@@ -161,35 +252,49 @@ class _DayOfWeeks extends StatelessWidget {
   Widget build(BuildContext context) {
     var columns = <Widget>[];
     for (var i = 0; i < _dayOfWeeks.length; i++) {
-      var column = _DayOfWeekItem(
+      var column = DayOfWeekItem(
         position: i,
         selected: _dayOfWeeks[i],
         displayText: _daysOfWeekDisplayText[i],
+        onPressed: _updateItem
       );
       columns.add(column);
     }
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: columns
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: columns
+      )
     );
+  }
+
+  void _updateItem(BuildContext context, int position) {
+    var copy = _dayOfWeeks.map((item) => item).toList();
+    copy[position] = !copy[position];
+    BlocProvider.of<TimeBloc>(context).updateDayOfWeeks(copy);
   }
 }
 
-class _DayOfWeekItem extends StatelessWidget {
+typedef DayOfWeekItemCallback = void Function(BuildContext, int);
+
+class DayOfWeekItem extends StatelessWidget {
   final _position;
   final _selected;
   final _displayText;
   final _width = 40.0;
   final _height = 40.0;
+  final DayOfWeekItemCallback _onPressed;
 
-  _DayOfWeekItem({
+  DayOfWeekItem({
     @required int position,
     @required bool selected,
     @required String displayText,
-  }) :
-  _position = position,
-  _selected = selected,
-  _displayText = displayText;
+    @required DayOfWeekItemCallback onPressed
+  }) : _position = position,
+    _selected = selected,
+    _displayText = displayText,
+    _onPressed = onPressed;
   
   @override
   Widget build(BuildContext context) {
@@ -219,17 +324,43 @@ class _DayOfWeekItem extends StatelessWidget {
       onTap: () =>_onPressed(context, _position)
     );
   }
+}
 
-  void _onPressed(final BuildContext context, final int index) {
+class RepeatArea extends StatelessWidget {
+  RepeatArea({
+    @required bool initialRepeat
+  }) : _initialRepeat = initialRepeat;
 
+  final bool _initialRepeat;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: BlocProvider.of<TimeBloc>(context).repeatMutationStream,
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        if (!snapshot.hasData) {
+          return RepeatDisplay(repeat: _initialRepeat ?? false);
+        }
+        final state = snapshot.data as TimeMutationState;
+        switch (state.runtimeType) {
+          case UpdateRepeatSuccessState:
+            final repeat = (state as UpdateRepeatSuccessState).updated;
+            return RepeatDisplay(repeat: repeat);
+          case UpdateRepeatFailureState:
+            final repeat = (state as UpdateRepeatFailureState).updated;
+            return RepeatDisplay(repeat: repeat);
+          default:
+            return null;
+        }
+      }
+    );
   }
 }
 
-class _Repeat extends StatelessWidget {
-  _Repeat({
+class RepeatDisplay extends StatelessWidget {
+  RepeatDisplay({
     @required bool repeat
-  }) :
-  this._repeat = repeat;
+  }) : this._repeat = repeat;
 
   final bool _repeat;
 
@@ -256,7 +387,7 @@ class _Repeat extends StatelessWidget {
 
   ValueChanged<bool> _onChangedWrapper(BuildContext context) {
     return (final bool value) {
-
+      BlocProvider.of<TimeBloc>(context).updateRepeat(!_repeat);
     };
   }
 }

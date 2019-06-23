@@ -53,4 +53,9 @@ class Time {
   
   @override
   int get hashCode => hashValues(timeOfDay, DeepCollectionEquality().hash(dayOfWeeks), repeat);
+
+  @override
+  String toString() {
+    return '${timeOfDay.toString()}, ${dayOfWeeks.map((item) => item.toString()).join(', ')}, $repeat';
+  }
 }

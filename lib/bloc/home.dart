@@ -31,6 +31,12 @@ class HomeBloc extends BlocBase {
   }
 
   Future updateAlarmSwitch(bool turnedOn) async {
+    debugPrint('[HomeBloc] updateAlarmSwitch - turnedOn - $turnedOn');
+    if (turnedOn && !(data.timeSet && data.locationSet && data.ringtoneSet)) {
+      _dataMutationSubject.add(HomeMutationState._badPrerequisite());
+      return;
+    }
+    
     data.turnedOn = turnedOn;
     final ok = await _repository.updateHomeScreen(data);
     if (ok) {
@@ -50,7 +56,7 @@ class HomeBloc extends BlocBase {
 
 class HomeState {
   HomeState();
-  factory HomeState._loadingState() = HomeLoadingState;
+  factory HomeState._loadingState() = HomeLoadingState;  
   factory HomeState._dataLoadedState(HomeScreen data) => HomeDataLoadedState(data);
   factory HomeState._failToLoadDataState() = HomeDataLoadFailureState;
 }
@@ -88,8 +94,17 @@ class HomeDataLoadFailureState extends HomeState {
 
 class HomeMutationState {
   HomeMutationState();
+  factory HomeMutationState._badPrerequisite() => UpdateAlarmSwitchBadPrerequisite();
   factory HomeMutationState._success(bool updatedValue) => UpdateAlarmSwitchSuccess(updatedValue: updatedValue);
   factory HomeMutationState._failure(bool updatedValue) => UpdateAlarmSwitchFailure(updatedValue: updatedValue);
+}
+
+class UpdateAlarmSwitchBadPrerequisite extends HomeMutationState {
+  @override
+  bool operator==(Object other) => other is UpdateAlarmSwitchBadPrerequisite;
+
+  @override
+  int get hashCode => super.hashCode;
 }
 
 class UpdateAlarmSwitchSuccess extends HomeMutationState {

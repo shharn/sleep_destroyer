@@ -68,7 +68,6 @@ void main() {
         expect(timeMenuFinder, findsOneWidget);
 
         await tester.tap(timeMenuFinder);
-        await tester.pumpAndSettle();
         verify(mockObserver.didPush(any, any));
       });
     });
@@ -92,7 +91,6 @@ void main() {
         expect(locationMenuFinder, findsOneWidget);
 
         await tester.tap(locationMenuFinder);
-        await tester.pumpAndSettle();
         verify(mockObserver.didPush(any, any));
       });
     });
@@ -116,7 +114,6 @@ void main() {
         expect(ringtoneMenuFinder, findsOneWidget);
 
         await tester.tap(ringtoneMenuFinder);
-        await tester.pumpAndSettle();
         verify(mockObserver.didPush(any, any));
       });
     });
