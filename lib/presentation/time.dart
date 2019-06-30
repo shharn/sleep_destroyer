@@ -11,9 +11,9 @@ import 'package:sleep_destroyer/presentation/common.dart';
 class TimeSettingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    debugPrint('[TimePage] build');
     final bloc = TimeBloc(HomeRepository(fileStorage: fileStorage), TimeRepository(fileStorage: fileStorage));
     bloc.loadData();
-    debugPrint('[TimePage] build');
     return BlocProvider(
       bloc: bloc,
       child: TimePageBlocContainer(),
@@ -25,7 +25,7 @@ class TimePageBlocContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: BlocProvider.of<TimeBloc>(context).dataLoadStream,
+      stream: BlocProvider.of<TimeBloc>(context).time,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (snapshot.hasData) {
           final state = snapshot.data as TimeState;
@@ -58,7 +58,7 @@ class TimePageContainer extends StatelessWidget {
       appBar: AppBar(
         actions: <Widget>[
           StreamBuilder(
-            stream: BlocProvider.of<TimeBloc>(context).timeSetOfHomeMutationSubject,
+            stream: BlocProvider.of<TimeBloc>(context).timeSetOfHomeMutation,
             builder: (BuildContext context, AsyncSnapshot snapshot) {
               if (snapshot.hasData) {
                 final state = snapshot.data as TimeMutationState;
@@ -136,7 +136,7 @@ class TimeArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: BlocProvider.of<TimeBloc>(context).timeOfDayMutationStream,
+      stream: BlocProvider.of<TimeBloc>(context).timeOfDayMutation,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (!snapshot.hasData) {
           return TimeDisplay(time: _initialTimeOfDay ?? TimeOfDay.now());
@@ -218,7 +218,7 @@ class DayOfWeeksArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: BlocProvider.of<TimeBloc>(context).dayOfWeeksMutationStream,
+      stream: BlocProvider.of<TimeBloc>(context).dayOfWeeksMutation,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (!snapshot.hasData) {
           return DayOfWeeksDisplay(dayOfWeeks: _inintialDayOfWeeks ?? <bool>[false, false, false, false, false, false, false]);
@@ -336,7 +336,7 @@ class RepeatArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: BlocProvider.of<TimeBloc>(context).repeatMutationStream,
+      stream: BlocProvider.of<TimeBloc>(context).repeatMutation,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (!snapshot.hasData) {
           return RepeatDisplay(repeat: _initialRepeat ?? false);

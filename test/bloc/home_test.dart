@@ -22,7 +22,7 @@ main() {
       when(repository.getHomeScreen()).thenAnswer((_) => Future.value(mockHomeScreenData));
 
       expectLater(
-        homeBloc.dataLoadStream,
+        homeBloc.homeScreen,
         emitsInOrder(
           <dynamic>[
             HomeLoadingState(),
@@ -38,7 +38,7 @@ main() {
       when(repository.getHomeScreen()).thenThrow((_) => Future.value(Exception));
 
       expectLater(
-        homeBloc.dataLoadStream,
+        homeBloc.homeScreen,
         emitsInOrder(
             <dynamic>[
             HomeLoadingState(),
@@ -60,7 +60,7 @@ main() {
       when(repository.updateHomeScreen(updatedHomeScreen)).thenAnswer((_) => Future.value(true));
       
       expectLater(
-        homeBloc.dataMutationStream,
+        homeBloc.homeScreenMutation,
         emitsInOrder(
           <dynamic>[
             UpdateAlarmSwitchSuccess(updatedValue: mockValue),
@@ -78,7 +78,7 @@ main() {
       final mockValue = true;
 
       expectLater(
-        homeBloc.dataMutationStream,
+        homeBloc.homeScreenMutation,
         emitsInOrder(
           <dynamic>[
             UpdateAlarmSwitchBadPrerequisite(),
@@ -98,7 +98,7 @@ main() {
       when(repository.updateHomeScreen(updatedHomeScreen)).thenAnswer((_) => Future.value(false));
 
       expectLater(
-        homeBloc.dataMutationStream,
+        homeBloc.homeScreenMutation,
         emitsInOrder(
           <dynamic>[
             UpdateAlarmSwitchFailure(updatedValue: !mockValue),

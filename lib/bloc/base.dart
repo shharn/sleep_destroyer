@@ -43,6 +43,7 @@ class _BlocProviderState<T extends BlocBase> extends State<BlocProvider<T>> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('${widget.runtimeType.toString()} build');
     return Container(
       child: _BlocProviderInherited<T>(
         child: widget.child,
@@ -66,5 +67,5 @@ class _BlocProviderInherited<T> extends InheritedWidget {
   T get bloc => _bloc;
 
   @override
-  bool updateShouldNotify(_BlocProviderInherited old) => false;
+  bool updateShouldNotify(_BlocProviderInherited old) => this != old;
 }

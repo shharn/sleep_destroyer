@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:rxdart/rxdart.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:sleep_destroyer/model/home.dart';
 import 'package:sleep_destroyer/bloc/base.dart';
 import 'package:sleep_destroyer/repository/home.dart';
@@ -12,45 +13,55 @@ class HomeBloc extends BlocBase {
 
   final HomeRepository _repository;
 
-  final _dataLoadSubject = new PublishSubject<HomeState>();
-  Stream<HomeState> get dataLoadStream => _dataLoadSubject.stream;
+  final _homeScreen = StreamController<HomeState>();
+  Stream<HomeState> get homeScreen => _homeScreen.stream;
 
-  final _dataMutationSubject = new PublishSubject<HomeMutationState>();
-  Stream<HomeMutationState> get dataMutationStream => _dataMutationSubject.stream;
+  final _homeScreenMutation = StreamController<HomeMutationState>();
+  Stream<HomeMutationState> get homeScreenMutation => _homeScreenMutation.stream;
 
   HomeScreen data;
   
   Future loadData() async {
-    _dataLoadSubject.add(HomeState._loadingState());
+    debugPrint('[HomeBloc] loadData');
+    _homeScreen.sink.add(HomeState._loadingState());
     try {
       data = await _repository.getHomeScreen();
-      _dataLoadSubject.add(HomeState._dataLoadedState(data));
+      _homeScreen.sink.add(HomeState._dataLoadedState(data));
     } catch (e) {
-      _dataLoadSubject.add(HomeState._failToLoadDataState());
+      _homeScreen.sink.add(HomeState._failToLoadDataState());
     }
   }
 
   Future updateAlarmSwitch(bool turnedOn) async {
     debugPrint('[HomeBloc] updateAlarmSwitch - turnedOn - $turnedOn');
+    if (data == null) {
+      data = await _repository.getHomeScreen();
+    }
+    
     if (turnedOn && !(data.timeSet && data.locationSet && data.ringtoneSet)) {
-      _dataMutationSubject.add(HomeMutationState._badPrerequisite());
+      _homeScreenMutation.sink.add(HomeMutationState._badPrerequisite());
       return;
     }
     
     data.turnedOn = turnedOn;
     final ok = await _repository.updateHomeScreen(data);
     if (ok) {
-      _dataMutationSubject.add(HomeMutationState._success(turnedOn));
+      _homeScreenMutation.sink.add(HomeMutationState._success(turnedOn));
     } else {
       data.turnedOn = !turnedOn;
-      _dataMutationSubject.add(HomeMutationState._failure(!turnedOn));
+      _homeScreenMutation.sink.add(HomeMutationState._failure(!turnedOn));
     }
+  }
+
+  Future initMutationState() async {
+    debugPrint('[HomeBloc] initMutationState');
+    _homeScreenMutation.sink.add(HomeMutationState._noop());
   }
 
   @override
   void dispose() {
-    _dataLoadSubject.close();
-    _dataMutationSubject.close();
+    _homeScreen.close();
+    _homeScreenMutation.close();
   }
 }
 
@@ -94,9 +105,18 @@ class HomeDataLoadFailureState extends HomeState {
 
 class HomeMutationState {
   HomeMutationState();
+  factory HomeMutationState._noop() => NoopMutationState();
   factory HomeMutationState._badPrerequisite() => UpdateAlarmSwitchBadPrerequisite();
   factory HomeMutationState._success(bool updatedValue) => UpdateAlarmSwitchSuccess(updatedValue: updatedValue);
   factory HomeMutationState._failure(bool updatedValue) => UpdateAlarmSwitchFailure(updatedValue: updatedValue);
+}
+
+class NoopMutationState extends HomeMutationState {
+  @override
+  bool operator==(Object other) => other is NoopMutationState;
+
+  @override
+  int get hashCode => super.hashCode;
 }
 
 class UpdateAlarmSwitchBadPrerequisite extends HomeMutationState {

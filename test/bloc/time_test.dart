@@ -32,7 +32,7 @@ main() {
       when(timeRepository.getTime()).thenAnswer((_) => Future.value(mockTime));
 
       expectLater(
-        bloc.dataLoadStream,
+        bloc.time,
         emitsInOrder(
           <dynamic>[
             TimeLoadingState(),
@@ -49,7 +49,7 @@ main() {
         when(timeRepository.getTime()).thenThrow((_) => Future.value(Exception));
 
         expectLater(
-          bloc.dataLoadStream,
+          bloc.time,
           emitsInOrder(
             <dynamic>[
               TimeLoadingState(),
@@ -69,7 +69,7 @@ main() {
       when(timeRepository.updateTime(mockTimeOfDay)).thenAnswer((_) => Future.value(true));
 
       expectLater(
-        bloc.timeOfDayMutationStream,
+        bloc.timeOfDayMutation,
         emitsInOrder(
           <dynamic>[
             UpdateTimeOfDaySuccessState(mockTimeOfDay),
@@ -87,7 +87,7 @@ main() {
       when(timeRepository.updateTime(mockTimeOfDay)).thenAnswer((_) => Future.value(false));
 
       expectLater(
-        bloc.timeOfDayMutationStream,
+        bloc.timeOfDayMutation,
         emitsInOrder(
           <dynamic>[
             UpdateTimeOfDayFailureState(mockTime.timeOfDay),
@@ -107,7 +107,7 @@ main() {
       when(timeRepository.updateDayOfWeeks(mockDayOfWeeks)).thenAnswer((_) => Future.value(true));
 
       expectLater(
-        bloc.dayOfWeeksMutationStream,
+        bloc.dayOfWeeksMutation,
         emitsInOrder(
           <dynamic>[
             UpdateDayOfWeeksSuccessState(mockDayOfWeeks),
@@ -125,7 +125,7 @@ main() {
       when(timeRepository.updateDayOfWeeks(mockDayOfWeeks)).thenAnswer((_) => Future.value(false));
 
       expectLater(
-        bloc.dayOfWeeksMutationStream,
+        bloc.dayOfWeeksMutation,
         emitsInOrder(
           <dynamic>[
             UpdateDayOfWeeksFailureState(mockTime.dayOfWeeks),
@@ -145,7 +145,7 @@ main() {
       when(timeRepository.updateRepeat(mockRepeat)).thenAnswer((_) => Future.value(true));
 
       expectLater(
-        bloc.repeatMutationStream,
+        bloc.repeatMutation,
         emitsInOrder(
           <dynamic>[
             UpdateRepeatSuccessState(mockRepeat),
@@ -163,7 +163,7 @@ main() {
       when(timeRepository.updateRepeat(mockRepeat)).thenAnswer((_) => Future.value(false));
 
       expectLater(
-        bloc.repeatMutationStream,
+        bloc.repeatMutation,
         emitsInOrder(
           <dynamic>[
             UpdateRepeatFailureState(mockTime.repeat),
@@ -185,7 +185,7 @@ main() {
       when(homeRepository.updateHomeScreen(updatedMockHomeScreen)).thenAnswer((_) => Future.value(true));
 
       expectLater(
-        bloc.timeSetOfHomeMutationSubject,
+        bloc.timeSetOfHomeMutation,
         emitsInOrder(
           <dynamic>[
             UpdateTimeSetOfHomeLoadingState(),
@@ -206,7 +206,7 @@ main() {
       when(homeRepository.updateHomeScreen(updatedMockHomeScreen)).thenAnswer((_) => Future.value(false));
 
       expectLater(
-        bloc.timeSetOfHomeMutationSubject,
+        bloc.timeSetOfHomeMutation,
         emitsInOrder(
           <dynamic>[
             UpdateTimeSetOfHomeLoadingState(),
@@ -224,7 +224,7 @@ main() {
       when(homeRepository.getHomeScreen()).thenAnswer((_) => Future.value(mockHomeScreen));
 
       expectLater(
-        bloc.timeSetOfHomeMutationSubject,
+        bloc.timeSetOfHomeMutation,
         emitsInOrder(
           <dynamic>[
             UpdateTimeSetOfHomeLoadingState(),

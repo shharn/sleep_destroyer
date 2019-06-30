@@ -9,14 +9,25 @@ import 'package:sleep_destroyer/presentation/time.dart';
 import 'package:sleep_destroyer/presentation/location.dart';
 import 'package:sleep_destroyer/presentation/ringtone.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  @override
+  HomePageState createState() => HomePageState();
+}
+
+class HomePageState extends State<HomePage> {
+  HomeBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = HomeBloc(HomeRepository(fileStorage: fileStorage));
+    _bloc.loadData();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bloc = HomeBloc(HomeRepository(fileStorage: fileStorage));
-    bloc.loadData();
-    debugPrint('[Homepage] build');
     return BlocProvider(
-      bloc: bloc,
+      bloc: _bloc,
       child: HomePageBlocContainer(),
     );
   }
@@ -26,7 +37,7 @@ class HomePageBlocContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: BlocProvider.of<HomeBloc>(context).dataLoadStream,
+      stream: BlocProvider.of<HomeBloc>(context).homeScreen,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (snapshot.hasData) {
           final state = snapshot.data as HomeState;
@@ -60,7 +71,7 @@ class HomePageContainer extends StatelessWidget {
     appBar: AppBar(
       actions: <Widget>[
           StreamBuilder(
-            stream: BlocProvider.of<HomeBloc>(context).dataMutationStream,
+            stream: BlocProvider.of<HomeBloc>(context).homeScreenMutation,
             builder: (BuildContext context, AsyncSnapshot mutationSnapshot) {
               if (mutationSnapshot.hasData) {
                 final state = mutationSnapshot.data as HomeMutationState;
@@ -81,11 +92,11 @@ class HomePageContainer extends StatelessWidget {
                         duration: Duration(seconds: 2)
                       );
                       Scaffold.of(context).showSnackBar(snackBar);
+                      BlocProvider.of<HomeBloc>(context).initMutationState();
                     });
-                    final turnedOn = BlocProvider.of<HomeBloc>(context).data?.turnedOn ?? false;
-                    return AlarmSwitch(turnedOn: turnedOn);
+                    return AlarmSwitch(turnedOn: _homeScreen.turnedOn);
                   default:
-                    return AlarmSwitch(turnedOn: false);
+                    return AlarmSwitch(turnedOn: _homeScreen.turnedOn);
                 }
               }
               return AlarmSwitch(

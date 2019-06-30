@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:mockito/mockito.dart';
@@ -25,7 +26,7 @@ main() {
       expect(actual, expected);
     });
 
-    test('Should "Time" object from json string', () async {
+    test('Should be "Time" object from json string', () async {
       final repository = TimeRepository(fileStorage: fileStorage);
       final mockString = '{"timeOfDay":"16:44","dayOfWeeks":[true,false,true,false,true,false,true],"repeat":true}';
       final expected = Time(timeOfDay: TimeOfDay(hour: 16, minute: 44), dayOfWeeks: <bool>[true, false, true, false, true, false, true], repeat: true);
