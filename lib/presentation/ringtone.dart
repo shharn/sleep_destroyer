@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vibration/vibration.dart';
 
 class RingtoneSettingPage extends StatelessWidget {
   @override
@@ -6,7 +7,17 @@ class RingtoneSettingPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(),
       body: Center(
-        child: Text('Ringtone Setting Page')
+        child: IconButton(
+          icon: Icon(Icons.vibration), 
+          onPressed: () async {
+            final result = await Vibration.hasVibrator();
+            if (result) {
+              Vibration.vibrate();
+            }
+          },
+          color: Colors.grey[600],
+          iconSize: 60.0
+        )
       ),
     );
   }

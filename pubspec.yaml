@@ -26,6 +26,7 @@ dependencies:
   google_maps_flutter: ^0.5.19
   path_provider: ^1.1.0
   geolocator: '^5.0.0'
+  vibration: '1.1.0'
 dev_dependencies:
   flutter_test:
     sdk: flutter
