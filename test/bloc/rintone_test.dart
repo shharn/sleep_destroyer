@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
 import 'package:mockito/mockito.dart';
 
 import 'package:sleep_destroyer/model/home.dart';
@@ -117,6 +116,69 @@ main() {
       );
 
       bloc.updateVibrate(false);
+    });
+  });
+
+  group('updateRingtoneSetOfHomeScreen', () {
+    test('Happy path when ringtoneSet is not set', () async {
+      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: false, locationSet: true, ringtoneSet : false);
+      final updatedHomeScreen = HomeScreen(turnedOn: false, timeSet: false, locationSet: true, ringtoneSet : true);
+      final bloc = RingtoneBloc(homeRepository: homeRepository, ringtoneRepository: ringtoneRepository);
+      when(homeRepository.getHomeScreen()).thenAnswer((_) => Future.value(mockHomeScreen));
+      when(homeRepository.updateHomeScreen(updatedHomeScreen)).thenAnswer((_) => Future.value(true));
+
+      expectLater(
+        bloc.ringtoneSetOfHomeMutation,
+        emitsInOrder(
+          <dynamic>[
+            UpdateRingtoneSetOfHomeScreenWaitingState(),
+            UpdateRingtoneSetOfHomeScreenSuccessState()
+          ]
+        )
+      );
+
+      await bloc.updateRingtoneSetOfHomeScreen();
+      verify(homeRepository.updateHomeScreen(updatedHomeScreen)).called(1);
+    });
+
+    test('Happy path when ringtoneSet is set', () async {
+      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: false, locationSet: true, ringtoneSet : true);
+      final bloc = RingtoneBloc(homeRepository: homeRepository, ringtoneRepository: ringtoneRepository);
+      when(homeRepository.getHomeScreen()).thenAnswer((_) => Future.value(mockHomeScreen));
+
+      expectLater(
+        bloc.ringtoneSetOfHomeMutation,
+        emitsInOrder(
+          <dynamic>[
+            UpdateRingtoneSetOfHomeScreenWaitingState(),
+            UpdateRingtoneSetOfHomeScreenSuccessState()
+          ]
+        )
+      );
+
+      await bloc.updateRingtoneSetOfHomeScreen();
+      verifyNever(homeRepository.updateHomeScreen(mockHomeScreen));
+    });
+
+    test('Should emit UpdateRingtoneSetOfHomeScreenFailureState when fail to update', () async {
+      final mockHomeScreen = HomeScreen(turnedOn: false, timeSet: false, locationSet: true, ringtoneSet : false);
+      final updatedHomeScreen = HomeScreen(turnedOn: false, timeSet: false, locationSet: true, ringtoneSet : true);
+      final bloc = RingtoneBloc(homeRepository: homeRepository, ringtoneRepository: ringtoneRepository);
+      when(homeRepository.getHomeScreen()).thenAnswer((_) => Future.value(mockHomeScreen));
+      when(homeRepository.updateHomeScreen(updatedHomeScreen)).thenAnswer((_) => Future.value(false));
+
+      expectLater(
+        bloc.ringtoneSetOfHomeMutation,
+        emitsInOrder(
+          <dynamic>[
+            UpdateRingtoneSetOfHomeScreenWaitingState(),
+            UpdateRingtoneSetOfHomeScreenFailureState()
+          ]
+        )
+      );
+
+      await bloc.updateRingtoneSetOfHomeScreen();
+      verify(homeRepository.updateHomeScreen(updatedHomeScreen)).called(1);
     });
   });
 }

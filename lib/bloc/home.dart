@@ -59,6 +59,12 @@ class HomeBloc extends BlocBase {
   }
 
   @override
+  void init() {
+    debugPrint('[HomeBloc] init');
+    loadData();
+  }
+
+  @override
   void dispose() {
     _homeScreen.close();
     _homeScreenMutation.close();

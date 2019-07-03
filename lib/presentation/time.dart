@@ -13,7 +13,6 @@ class TimeSettingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     debugPrint('[TimePage] build');
     final bloc = TimeBloc(HomeRepository(fileStorage: fileStorage), TimeRepository(fileStorage: fileStorage));
-    bloc.loadData();
     return BlocProvider(
       bloc: bloc,
       child: TimePageBlocContainer(),

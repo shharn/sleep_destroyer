@@ -56,6 +56,34 @@ class RingtoneBloc extends BlocBase {
     }
   }
 
+  Future updateRingtoneSetOfHomeScreen() async {
+    debugPrint('[RingtoneBloc] updateRingtoneSetOfHomeScreen');
+    _ringtoneSetOfHomeMutation.sink.add(RingtoneMutationState._updateRingtoneSetOfHomeScreenWaiting());
+    try {
+      var homeScreen = await _homeRepository.getHomeScreen();
+      if (homeScreen.ringtoneSet) {
+        _ringtoneSetOfHomeMutation.sink.add(RingtoneMutationState._updateRingtoneSetOfHomeScreenSuccess());
+        return;
+      }
+      homeScreen.ringtoneSet = true;
+      final ok = await _homeRepository.updateHomeScreen(homeScreen);
+      if (ok) {
+        _ringtoneSetOfHomeMutation.sink.add(RingtoneMutationState._updateRingtoneSetOfHomeScreenSuccess());
+        return;
+      }
+      _ringtoneSetOfHomeMutation.sink.add(RingtoneMutationState._updateRingtoneSetOfHomeScreenFailure());
+    } catch (e) {
+      debugPrint(e.toString());
+      _ringtoneSetOfHomeMutation.sink.add(RingtoneMutationState._updateRingtoneSetOfHomeScreenFailure());
+    }
+  }
+
+  @override
+  void init() {
+    debugPrint('[RingtoneBloc] init');
+    loadData();
+  }
+
   @override
   void dispose() {
     _ringtone.close();

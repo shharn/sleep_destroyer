@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 Type _typeOf<T>() => T;
 
 abstract class BlocBase {
+  void init() {}
   void dispose();
 }
 
@@ -44,6 +45,7 @@ class _BlocProviderState<T extends BlocBase> extends State<BlocProvider<T>> {
   @override
   Widget build(BuildContext context) {
     debugPrint('${widget.runtimeType.toString()} build');
+    widget.bloc.init();
     return Container(
       child: _BlocProviderInherited<T>(
         child: widget.child,

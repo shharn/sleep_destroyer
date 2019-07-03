@@ -70,6 +70,12 @@ class LocationBloc extends BlocBase {
   }
 
   @override
+  void init() {
+    debugPrint('[LocationBloc] init');
+    getLocations();
+  }
+
+  @override
   void dispose() {
     _location.close();
     _locationSetOfHomeScreenMutation.close();

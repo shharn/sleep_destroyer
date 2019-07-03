@@ -9,26 +9,13 @@ import 'package:sleep_destroyer/presentation/time.dart';
 import 'package:sleep_destroyer/presentation/location.dart';
 import 'package:sleep_destroyer/presentation/ringtone.dart';
 
-class HomePage extends StatefulWidget {
-  @override
-  HomePageState createState() => HomePageState();
-}
-
-class HomePageState extends State<HomePage> {
-  HomeBloc _bloc;
-
-  @override
-  void initState() {
-    super.initState();
-    _bloc = HomeBloc(HomeRepository(fileStorage: fileStorage));
-    _bloc.loadData();
-  }
-
+class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final bloc = HomeBloc(HomeRepository(fileStorage: fileStorage));
     return BlocProvider(
-      bloc: _bloc,
-      child: HomePageBlocContainer(),
+      bloc: bloc,
+      child: HomePageBlocContainer()
     );
   }
 }
@@ -36,6 +23,7 @@ class HomePageState extends State<HomePage> {
 class HomePageBlocContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    debugPrint('[HomePageBlocContainer] build');
     return StreamBuilder(
       stream: BlocProvider.of<HomeBloc>(context).homeScreen,
       builder: (BuildContext context, AsyncSnapshot snapshot) {

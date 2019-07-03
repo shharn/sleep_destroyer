@@ -15,7 +15,6 @@ class LocationSettingPage extends StatelessWidget {
     final bloc = LocationBloc(homeRepository: HomeRepository(
       fileStorage: fileStorage),
       locationRepository: LocationRepository(fileStorage: fileStorage));
-    bloc.getLocations();
     return BlocProvider(
       bloc: bloc,
       child: MapViewContainer()
